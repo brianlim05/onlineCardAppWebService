@@ -1,0 +1,39 @@
+// inlude the required packages
+const express = require ('express');
+const mysql = require ('mysql/promise');
+require ('dotenv').config();
+const port = 3000;
+
+// database config info
+const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    WaitForConnections: true,
+    connectionLimit: 100,
+    queueLimit: 0,
+};
+
+// initialise Express App
+const app = express();
+// help  app to read JSON
+app.use(express.join());
+
+// start the server
+app.listen(port, () => {
+    console.log('Server running on port', port);
+});
+
+// Example Route: GET all cards
+app.get('/allcards', async (req, res) => {
+    try {
+        let connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute ('SELECT * FROM defaultdb.cards');
+        res.json(rows);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({message: 'Server error for all cards' });
+    }
+});
