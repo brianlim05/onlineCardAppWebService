@@ -26,6 +26,7 @@ app.listen(port, () => {
     console.log('Server running on port', port);
 });
 
+app.get('/')
 // Example Route: GET all cards
 app.get('/allcards', async (req, res) => {
     try {
@@ -35,5 +36,18 @@ app.get('/allcards', async (req, res) => {
     } catch (err) {
         console.log(err);
         res.status(500).json({message: 'Server error for all cards' });
+    }
+});
+
+// Example Route: CREATE a new card
+app.post('/addcard', async (req, res) => {
+    const {card_name, card_pic} = req.body;
+    try{
+        let connection = await mysql.createConnection(dbConfig);
+        await connection.execute('INSERT INTO cards (card_name, card_pic) VALUES (?, ?)', [card_name, card_pic]);
+        res.status(201).json({message: 'Card '+ card_name+ 'add successfully'});
+    } catch (err) {
+        console.error(err);
+            res.status(500).json({ message:'Server error - could not add card'});
     }
 });
