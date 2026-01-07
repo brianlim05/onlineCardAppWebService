@@ -19,7 +19,7 @@ const dbConfig = {
 // initialise Express App
 const app = express();
 // help  app to read JSON
-app.use(express.join());
+app.use(express.json());
 
 // start the server
 app.listen(port, () => {
