@@ -2,7 +2,7 @@
 Web services that allow get and post routes.
 
 With:
-- **allcards**
+- **/allcards**
 - **/addcard**
 
 
