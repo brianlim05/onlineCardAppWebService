@@ -1,53 +1,88 @@
-// inlude the required packages
-const express = require ('express');
-const mysql = require ('mysql2/promise');
-require ('dotenv').config();
+const express = require('express');
+const mysql = require('mysql2/promise');
+const cors = require("cors");
+require('dotenv').config();
 const port = 3000;
-
-// database config info
 const dbConfig = {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
-    WaitForConnections: true,
+    waitForConnections: true,
     connectionLimit: 100,
     queueLimit: 0,
 };
-
-// initialise Express App
 const app = express();
-// help  app to read JSON
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://card-app-starter-rvxg.onrender.com"
+];
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error("Not allowed by CORS"));
+        },
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: false,
+    })
+);
 app.use(express.json());
-
-// start the server
 app.listen(port, () => {
     console.log('Server running on port', port);
 });
-
-app.get('/')
-// Example Route: GET all cards
+// GET
 app.get('/allcards', async (req, res) => {
     try {
         let connection = await mysql.createConnection(dbConfig);
-        const [rows] = await connection.execute ('SELECT * FROM defaultdb.cards');
+        const [rows] = await connection.execute('SELECT * FROM defaultdb.cards');
         res.json(rows);
     } catch (err) {
-        console.log(err);
-        res.status(500).json({message: 'Server error for all cards' });
+        console.error(err);
+        res.status(500).json({message: 'Server error for allcards'});
     }
 });
-
-// Example Route: CREATE a new card
-app.post('/addcard', async (req, res) => {
+// POST
+app.post('/addcards', async (req, res) => {
     const {card_name, card_pic} = req.body;
-    try{
+    try {
         let connection = await mysql.createConnection(dbConfig);
         await connection.execute('INSERT INTO cards (card_name, card_pic) VALUES (?, ?)', [card_name, card_pic]);
-        res.status(201).json({message: 'Card '+ card_name+ ' added successfully'});
+        res.status(201).json({message: 'Card ' + card_name + ' added successfully'});
     } catch (err) {
         console.error(err);
-            res.status(500).json({ message:'Server error - could not add card'});
+        res.status(500).json({message: 'Server error - could not add card'});
     }
 });
+app.put('/updatecards/:id', async (req, res) => {
+    const {id} = req.params;
+    const {card_name, card_pic} = req.body;
+    try {
+        let connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT card_name FROM cards WHERE id = ?', [id]);
+        const displayName = card_name || rows[0].card_name;
+        await connection.execute('UPDATE cards SET card_name=?, card_pic=? WHERE id = ?', [card_name, card_pic, id]);
+        res.status(201).json({message: 'Card ' + displayName + ' has been updated successfully'});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: 'Server error - could not update card'});
+    }
+})
+app.delete('/deletecards/:id', async (req, res) => {
+    const {id} = req.params;
+    try {
+        let connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT card_name FROM cards WHERE id = ?', [id]);
+        const displayName = rows[0].card_name;
+        await connection.execute('DELETE FROM cards WHERE id = ?', [id]);
+        res.status(200).json({message: 'Card ' + displayName + ' has been deleted'});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: 'Server error - could not delete card'});
+    }
+})
